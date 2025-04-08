@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# Poetry
+poetry.lock
+
+# Docker
+*.pyc
+build/
+dist/
+
+# Secrets
+credentials.json

@@ -1,0 +1,5 @@
+gspread
+pandas
+oaut2client
+pyscopg2
+time
