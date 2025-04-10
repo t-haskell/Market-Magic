@@ -13,7 +13,7 @@ Author: Tommy Haskell
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
-import time
+import datetime
 import psycopg2
 
 ###########################################
@@ -34,7 +34,8 @@ client = gspread.authorize(creds)
 
 try:
     ohlvc_sheet = client.open("Market Magic Data Source").worksheet("OHLVC")
-    print(f"\n**\nData Fetched Successfully! Current Time: {time.time()}\n")
+    import datetime
+    print(f"\n**\nData Fetched Successfully! Current Time: {datetime.datetime.now()}\n")
     
     # Convert sheet data to pandas DataFrame
     ohlvc_data = pd.DataFrame(ohlvc_sheet.get_all_values())

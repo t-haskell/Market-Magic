@@ -7,14 +7,26 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Install Dependencies') {
+        stage('Setup Python Environment') {
             steps {
-                sh 'pip install -r automation-scripts/requirements.txt'
+                sh '''
+                    # Create a virtual environment named venv
+                    python3 -m venv venv
+                    # Activate the virtual environment and upgrade pip
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    # Install dependencies from requirements.txt
+                    pip install -r automation-scripts/requirements.txt
+                '''
             }
         }
         stage('Run Data Ingestion') {
             steps {
-                sh 'python src/data_ingestion/fetch_ohlvc.py'
+                sh '''
+                    # Activate the virtual environment and run the script
+                    . venv/bin/activate
+                    python src/data_ingestion/fetch_ohlvc.py
+                '''
             }
         }
     }
