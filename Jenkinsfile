@@ -22,11 +22,14 @@ pipeline {
         }
         stage('Run Data Ingestion') {
             steps {
-                sh '''
+                // Bind credentials.json secret file on Jenkins
+                withCredentials([file(credentialsId: 'GOOGLE_CREDS_JSON', variable: 'CREDS_FILE')]){
+                    sh '''
                     # Activate the virtual environment and run the script
                     . venv/bin/activate
-                    python src/data_ingestion/fetch_ohlvc.py
-                '''
+                    python src/data_ingestion/fetch_ohlvc.py --creds "$CREDS_FILE"
+                    '''
+                }
             }
         }
     }

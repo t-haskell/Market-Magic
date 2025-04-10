@@ -15,6 +15,15 @@ from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 import datetime
 import psycopg2
+import argparse
+
+
+###########################################
+# Parse Command-Line Arguments
+###########################################
+parser = argparse.ArgumentParser(description="Market Magic Data Ingestion Script")
+parser.add_argument("--creds", help="Path to the Google API credentials JSON file", default="credentials.json")
+args = parser.parse_args()
 
 ###########################################
 # Google Sheets Authentication & Setup
@@ -25,7 +34,7 @@ scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
 
 # Get credentials
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name(args.creds, scope)
 client = gspread.authorize(creds)
 
 ###########################################
