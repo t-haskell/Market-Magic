@@ -19,7 +19,7 @@ services:
     image: postgres:14  # specify a version that fits your needs
     container_name: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432" # Maps container's port 5432 to host's port 5433
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
