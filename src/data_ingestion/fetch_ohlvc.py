@@ -130,7 +130,7 @@ conn = psycopg2.connect(
     dbname="postgres",
     user="postgres",
     password="asdfghjkl;'",
-    host="localhost"
+    host="postgres" # Uses service name from docker-compose file
 )
 cursor = conn.cursor()
 print(f"\n**\nDatabase connection successful!\n**\n")

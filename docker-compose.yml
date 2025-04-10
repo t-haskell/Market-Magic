@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   jenkins:
-    image: jenkins/jenkins:lts
+    build: . # Builds using the Dockerfile in current directory
     container_name: jenkins
     ports:
       - "8080:8080"      # Jenkins UI port
@@ -11,7 +11,22 @@ services:
       - jenkins_home:/var/jenkins_home  # Persist Jenkins configuration and job data
       - /var/run/docker.sock:/var/run/docker.sock  # Enables Docker within Jenkins if needed
     environment:
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14  # specify a version that fits your needs
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: asdfghjkl;'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
 volumes:
   jenkins_home:
+  pgdata:
