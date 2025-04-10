@@ -1,5 +1,4 @@
 gspread
 pandas
-oaut2client
-pyscopg2
-time
+oauth2client
+psycopg2-binary
