@@ -26,6 +26,7 @@ services:
       POSTGRES_PASSWORD: asdfghjkl;'
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./sql-scripts:/docker-entrypoint-initdb.d # Mounting schema creation script
 
 volumes:
   jenkins_home:
