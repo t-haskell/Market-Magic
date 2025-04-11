@@ -1,6 +1,6 @@
 -- MARKET DATA
 CREATE TABLE market_data_partitioned (
-    id SERIAL PRIMARY KEY,
+    id SERIAL,
     symbol TEXT NOT NULL,
     datetime TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     open_price NUMERIC(19,4),
@@ -12,7 +12,8 @@ CREATE TABLE market_data_partitioned (
     sma_200 NUMERIC(19,4),
     rsi NUMERIC(5,2),
     macd NUMERIC(19,4),
-    CONSTRAINT market_data_symbol_datetime_key UNIQUE(symbol, datetime)
+    CONSTRAINT market_data_symbol_datetime_key UNIQUE(symbol, datetime),
+    PRIMARY KEY (symbol, id)
 ) PARTITION BY LIST (symbol);
 
 -- NEWS SENTIMENT
