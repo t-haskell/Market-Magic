@@ -12,7 +12,7 @@ CREATE TABLE market_data_partitioned (
     sma_200 NUMERIC, 
     rsi NUMERIC,
     macd NUMERIC,
-    UNIQUE(symbol, datetime)
+    UNIQUE(symbol)
 ) PARTITION BY LIST (symbol);
 
 -- NEWS SENTIMENT
