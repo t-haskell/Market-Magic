@@ -113,7 +113,7 @@ CREATE TABLE model_predictions (
     confidence_score NUMERIC CHECK (confidence_score BETWEEN 0 AND 1),
     model_version_id INT,
     UNIQUE(symbol, datetime, model_version_id),
-    FOREIGN KEY (symbol) REFERENCES market_data_partitioned(symbol),
+    -- FOREIGN KEY (symbol) REFERENCES market_data_partitioned(symbol),
     FOREIGN KEY (model_version_id) REFERENCES model_versions(id)
 );
 
