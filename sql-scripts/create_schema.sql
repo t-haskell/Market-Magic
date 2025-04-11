@@ -1,6 +1,5 @@
--- TABLE CREATION
-
-CREATE TABLE market_data (
+-- MARKET DATA
+CREATE TABLE market_data_partitioned (
     id SERIAL PRIMARY KEY,
     symbol TEXT NOT NULL,
     datetime TIMESTAMP NOT NULL,
@@ -9,42 +8,64 @@ CREATE TABLE market_data (
     low_price NUMERIC,
     close_price NUMERIC,
     volume BIGINT,
-    sma_50 NUMERIC,  -- Example: Simple Moving Average
+    sma_50 NUMERIC,  
     sma_200 NUMERIC, 
-    rsi NUMERIC,  -- Relative Strength Index
-    macd NUMERIC,  -- MACD indicator
+    rsi NUMERIC,
+    macd NUMERIC,
     UNIQUE(symbol, datetime)
+) PARTITION BY LIST (symbol);
+
+-- NEWS SENTIMENT
+CREATE TABLE news_sources (
+    id SERIAL PRIMARY KEY,
+    source_name TEXT UNIQUE
 );
 
 CREATE TABLE news_sentiment (
     id SERIAL PRIMARY KEY,
     datetime TIMESTAMP NOT NULL,
-    source TEXT,
+    source_id INT,
     title TEXT,
-    sentiment_score NUMERIC,  -- [-1 to 1] sentiment polarity
-    entity_recognition JSONB,  -- Named entities detected (JSON format)
+    sentiment_score NUMERIC,
+    entity_recognition JSONB,
     keywords TEXT[],
-    UNIQUE(datetime, title)
+    UNIQUE(datetime, title),
+    FOREIGN KEY (source_id) REFERENCES news_sources(id)
+);
+
+-- SOCIAL MEDIA SENTIMENT
+CREATE TABLE social_media_platforms (
+    id SERIAL PRIMARY KEY,
+    platform_name TEXT UNIQUE CHECK (platform_name IN ('twitter', 'reddit'))
 );
 
 CREATE TABLE social_media_sentiment (
     id SERIAL PRIMARY KEY,
     datetime TIMESTAMP NOT NULL,
-    platform TEXT CHECK (platform IN ('twitter', 'reddit')),
+    platform_id INT,
     post_text TEXT,
-    sentiment_score NUMERIC,  -- [-1 to 1]
-    engagement INT,  -- Likes/retweets/upvotes
+    sentiment_score NUMERIC,
+    engagement INT,
     author TEXT,
-    UNIQUE(datetime, post_text)
+    UNIQUE(datetime, post_text),
+    FOREIGN KEY (platform_id) REFERENCES social_media_platforms(id)
 );
 
+-- SATELLITE DATA
 CREATE TABLE satellite_data (
     id SERIAL PRIMARY KEY,
     datetime TIMESTAMP NOT NULL,
     location TEXT,
-    image_url TEXT,  -- Link to stored image (Cloud Storage / S3)
-    extracted_features JSONB,  -- Example: Traffic density, farmland changes
+    image_url TEXT,
+    image_hash TEXT UNIQUE,
+    extracted_features JSONB,
     UNIQUE(datetime, location)
+);
+
+-- MODEL PREDICTIONS
+CREATE TABLE model_versions (
+    id SERIAL PRIMARY KEY,
+    version TEXT UNIQUE
 );
 
 CREATE TABLE model_predictions (
@@ -53,23 +74,15 @@ CREATE TABLE model_predictions (
     symbol TEXT NOT NULL,
     predicted_price NUMERIC NOT NULL,
     confidence_score NUMERIC CHECK (confidence_score BETWEEN 0 AND 1),
-    model_version TEXT,
-    UNIQUE(symbol, datetime, model_version)
+    model_version_id INT,
+    UNIQUE(symbol, datetime, model_version_id),
+    FOREIGN KEY (symbol) REFERENCES market_data_partitioned(symbol),
+    FOREIGN KEY (model_version_id) REFERENCES model_versions(id)
 );
 
-
-
-
--- INDEXING THE TIME-SERIES DATA
-CREATE INDEX idx_market_data_datetime ON market_data(datetime);
-CREATE INDEX idx_news_sentiment_datetime ON news_sentiment(datetime);
-CREATE INDEX idx_social_sentiment_datetime ON social_media_sentiment(datetime);
+-- INDEXES
+CREATE INDEX idx_market_data_datetime ON market_data_partitioned(datetime);
+CREATE INDEX idx_news_keywords ON news_sentiment USING GIN (keywords);
+CREATE INDEX idx_social_post_text ON social_media_sentiment USING GIN (to_tsvector('english', post_text));
+CREATE INDEX idx_satellite_features ON satellite_data USING GIN (extracted_features);
 CREATE INDEX idx_predictions_symbol_datetime ON model_predictions(symbol, datetime);
-
-
-
-
--- FK
-ALTER TABLE model_predictions 
-ADD CONSTRAINT fk_symbol FOREIGN KEY (symbol) 
-REFERENCES market_data(symbol);
