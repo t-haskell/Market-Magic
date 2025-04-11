@@ -2,53 +2,55 @@
 CREATE TABLE market_data_partitioned (
     id SERIAL PRIMARY KEY,
     symbol TEXT NOT NULL,
-    datetime TIMESTAMP NOT NULL,
-    open_price NUMERIC,
-    high_price NUMERIC,
-    low_price NUMERIC,
-    close_price NUMERIC,
+    datetime TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    open_price NUMERIC(19,4),
+    high_price NUMERIC(19,4),
+    low_price NUMERIC(19,4),
+    close_price NUMERIC(19,4),
     volume BIGINT,
-    sma_50 NUMERIC,  
-    sma_200 NUMERIC, 
-    rsi NUMERIC,
-    macd NUMERIC,
-    UNIQUE(symbol)
+    sma_50 NUMERIC(19,4),
+    sma_200 NUMERIC(19,4),
+    rsi NUMERIC(5,2),
+    macd NUMERIC(19,4),
+    CONSTRAINT market_data_symbol_datetime_key UNIQUE(symbol, datetime)
 ) PARTITION BY LIST (symbol);
 
 -- NEWS SENTIMENT
 CREATE TABLE news_sources (
     id SERIAL PRIMARY KEY,
-    source_name TEXT UNIQUE
+    source_name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE news_sentiment (
     id SERIAL PRIMARY KEY,
-    datetime TIMESTAMP NOT NULL,
-    source_id INT,
-    title TEXT,
-    sentiment_score NUMERIC,
+    datetime TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    source_id INT NOT NULL,
+    title TEXT NOT NULL,
+    sentiment_score NUMERIC(4,3) CHECK (sentiment_score BETWEEN -1 AND 1),
     entity_recognition JSONB,
     keywords TEXT[],
-    UNIQUE(datetime, title),
-    FOREIGN KEY (source_id) REFERENCES news_sources(id)
+    CONSTRAINT news_datetime_title_key UNIQUE(datetime, title),
+    CONSTRAINT fk_news_source FOREIGN KEY (source_id) REFERENCES news_sources(id)
 );
 
 -- SOCIAL MEDIA SENTIMENT
 CREATE TABLE social_media_platforms (
     id SERIAL PRIMARY KEY,
-    platform_name TEXT UNIQUE CHECK (platform_name IN ('twitter', 'reddit'))
+    platform_name TEXT NOT NULL UNIQUE,
+    CONSTRAINT valid_platform CHECK (platform_name IN ('twitter', 'reddit'))
 );
 
 CREATE TABLE social_media_sentiment (
     id SERIAL PRIMARY KEY,
-    datetime TIMESTAMP NOT NULL,
-    platform_id INT,
-    post_text TEXT,
-    sentiment_score NUMERIC,
-    engagement INT,
-    author TEXT,
-    UNIQUE(datetime, post_text),
-    FOREIGN KEY (platform_id) REFERENCES social_media_platforms(id)
+    datetime TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    platform_id INT NOT NULL,
+    post_text TEXT NOT NULL,
+    sentiment_score NUMERIC(4,3) CHECK (sentiment_score BETWEEN -1 AND 1),
+    engagement INT NOT NULL DEFAULT 0,
+    author TEXT NOT NULL,
+    CONSTRAINT social_datetime_post_key UNIQUE(datetime, post_text),
+    CONSTRAINT fk_platform FOREIGN KEY (platform_id) REFERENCES social_media_platforms(id)
 );
 
 -- SATELLITE DATA
@@ -81,8 +83,10 @@ CREATE TABLE model_predictions (
 );
 
 -- INDEXES
-CREATE INDEX idx_market_data_datetime ON market_data_partitioned(datetime);
+CREATE INDEX idx_market_data_datetime ON market_data_partitioned(datetime DESC);
+CREATE INDEX idx_news_datetime ON news_sentiment(datetime DESC);
 CREATE INDEX idx_news_keywords ON news_sentiment USING GIN (keywords);
+CREATE INDEX idx_social_sentiment ON social_media_sentiment(sentiment_score);
 CREATE INDEX idx_social_post_text ON social_media_sentiment USING GIN (to_tsvector('english', post_text));
 CREATE INDEX idx_satellite_features ON satellite_data USING GIN (extracted_features);
-CREATE INDEX idx_predictions_symbol_datetime ON model_predictions(symbol, datetime);
+CREATE INDEX idx_predictions_symbol_datetime ON model_predictions(symbol, datetime DESC);
