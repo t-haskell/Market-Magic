@@ -16,6 +16,40 @@ CREATE TABLE market_data_partitioned (
     PRIMARY KEY (symbol, id)
 ) PARTITION BY LIST (symbol);
 
+-- Explicit partitions for specific stock tickers
+CREATE TABLE market_data_aapl PARTITION OF market_data_partitioned
+    FOR VALUES IN ('AAPL');
+
+CREATE TABLE market_data_msft PARTITION OF market_data_partitioned
+    FOR VALUES IN ('MSFT');
+
+CREATE TABLE market_data_googl PARTITION OF market_data_partitioned
+    FOR VALUES IN ('GOOGL');
+
+CREATE TABLE market_data_amzn PARTITION OF market_data_partitioned
+    FOR VALUES IN ('AMZN');
+
+CREATE TABLE market_data_meta PARTITION OF market_data_partitioned
+    FOR VALUES IN ('META');
+
+CREATE TABLE market_data_tsla PARTITION OF market_data_partitioned
+    FOR VALUES IN ('TSLA');
+
+CREATE TABLE market_data_nvda PARTITION OF market_data_partitioned
+    FOR VALUES IN ('NVDA');
+
+CREATE TABLE market_data_jpm PARTITION OF market_data_partitioned
+    FOR VALUES IN ('JPM');
+
+CREATE TABLE market_data_brkb PARTITION OF market_data_partitioned
+    FOR VALUES IN ('BRK.B');
+
+CREATE TABLE market_data_vz PARTITION OF market_data_partitioned
+    FOR VALUES IN ('VZ');
+
+-- Default partition: catches any rows with a ticker not explicitly defined above
+CREATE TABLE market_data_default PARTITION OF market_data_partitioned DEFAULT;
+
 -- NEWS SENTIMENT
 CREATE TABLE news_sources (
     id SERIAL PRIMARY KEY,
