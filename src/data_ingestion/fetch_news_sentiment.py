@@ -21,6 +21,21 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import json
+import logging
+
+###########################################
+# Logging Configuration
+###########################################
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console output
+        logging.FileHandler("news_sentiment.log", mode='a')  # File logging
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 # Download required NLTK data
 nltk.download('punkt')
@@ -33,6 +48,9 @@ nltk.download('stopwords')
 parser = argparse.ArgumentParser(description="Market Magic News Sentiment Analysis Script")
 parser.add_argument("--api_key", help="API key for news sources", required=False)
 args = parser.parse_args()
+
+logger.info(f"Script started at {datetime.now()}")
+logger.info(f"API Key provided: {'Yes' if args.api_key else 'No'}")
 
 ###########################################
 # News Sources Configuration
@@ -75,12 +93,13 @@ def fetch_news_articles(symbol, source):
     """Fetch news articles for a given symbol from a source"""
     articles = []
     try:
-        # This is a placeholder - you'll need to implement actual API calls
-        # based on the news source's API
+        logger.info(f"Fetching articles for {symbol} from {source}")
+        logger.debug(f"Requesting URL: {NEWS_SOURCES[source]}{symbol}")
+        
+        # This is a placeholder to implement actual news source API's TODO
         response = requests.get(f"{NEWS_SOURCES[source]}{symbol}")
         if response.status_code == 200:
-            # Parse articles using newspaper3k
-            # This is a simplified example
+            # Simplified parsing of articles, could be refined TODO
             article = Article(response.url)
             article.download()
             article.parse()
@@ -92,8 +111,9 @@ def fetch_news_articles(symbol, source):
                 'datetime': article.publish_date or datetime.now(),
                 'source': source
             })
+            logger.info(f"Article fetched: {article.title[:60]}... from {source}")
     except Exception as e:
-        print(f"Error fetching news for {symbol} from {source}: {e}")
+        logger.error(f"Failed to fetch or parse article for {symbol} from {source}: {e}")
     return articles
 
 ###########################################
@@ -101,12 +121,18 @@ def fetch_news_articles(symbol, source):
 ###########################################
 def process_articles(articles):
     """Process articles and perform sentiment analysis"""
+
+    logger.info(f"Processing {len(articles)} articles")
+
     processed_data = []
     for article in articles:
         sentiment_score = analyze_sentiment(article['text'])
         keywords = extract_keywords(article['text'])
         entities = extract_entities(article['text'])
         
+        logger.debug(f"Analyzing article: {article['title'][:50]}...")
+        logger.debug(f"Sentiment score: {sentiment_score:.3f}, Keywords found: {len(keywords)}")
+
         processed_data.append({
             'datetime': article['datetime'],
             'source': article['source'],
@@ -122,12 +148,14 @@ def process_articles(articles):
 ###########################################
 def load_to_database(processed_data):
     """Load processed news data into PostgreSQL"""
+
+    logger.info("Connecting to PostgreSQL database...")
+
     conn = psycopg2.connect(
         dbname="postgres",
-        # dbname="postgres",
         user="postgres",
         password="asdfghjkl;'",
-        # host="postgres"
+        # host="postgres"   # TODO For Jenkins pipeline with Postgres instance in Docker container
         host="localhost"
     )
     cursor = conn.cursor()
@@ -140,6 +168,8 @@ def load_to_database(processed_data):
                 VALUES (%s)
                 ON CONFLICT (source_name) DO NOTHING
             """, (source,))
+        
+        logger.info("Ensured news sources are up to date in the database")
         
         # Get source IDs
         cursor.execute("SELECT id, source_name FROM news_sources")
@@ -161,10 +191,14 @@ def load_to_database(processed_data):
                 data['keywords']
             ))
         
+            logger.debug(f"Inserted article: {data['title'][:60]}...")
+        
         conn.commit()
-        print("News sentiment data loaded successfully!")
+        
+        logger.info("News sentiment data committed to the database successfully")
+    
     except Exception as e:
-        print(f"Error loading data to database: {e}")
+        logger.error(f"Database insertion failed: {e}")
         conn.rollback()
     finally:
         cursor.close()
@@ -174,11 +208,11 @@ def load_to_database(processed_data):
 # Main Execution
 ###########################################
 def main():
-    print(f"\n**\nStarting News Sentiment Analysis! Current Time: {datetime.now()}\n")
+    logger.info(f"Starting News Sentiment Analysis for {len(STOCK_SYMBOLS)} symbols! Current Time: {datetime.now()}\n")
     
     all_processed_data = []
     for symbol in STOCK_SYMBOLS:
-        print(f"\nProcessing news for {symbol}...")
+        logger.info(f"\nProcessing news for {symbol}...")
         for source in NEWS_SOURCES:
             articles = fetch_news_articles(symbol, source)
             if articles:
@@ -186,9 +220,10 @@ def main():
                 all_processed_data.extend(processed_data)
     
     if all_processed_data:
+        logger.info(f"Total processed articles: {len(all_processed_data)}")
         load_to_database(all_processed_data)
     else:
-        print("No news articles were processed.")
+        logger.warning("No articles were processed. Check data source or connectivity.")
 
 if __name__ == "__main__":
-    main() 
+    main()
