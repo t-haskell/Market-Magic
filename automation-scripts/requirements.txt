@@ -2,3 +2,9 @@ gspread
 pandas
 oauth2client
 psycopg2-binary
+nltk
+newspaper3k
+transformers
+torch
+requests
+lxml-html-clean # Needed for newspaper3k library
