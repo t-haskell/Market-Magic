@@ -23,6 +23,11 @@ from nltk.corpus import stopwords
 import json
 import logging
 from newsapi import NewsApiClient
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 ###########################################
 # Logging Configuration
@@ -42,9 +47,9 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 # Download required NLTK data
-# nltk.download('punkt')
-# nltk.download('punkt_tab')
-# nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('stopwords')
 
 ###########################################
 # Parse Command-Line Arguments
@@ -151,11 +156,10 @@ def load_to_database(processed_data):
     logger.info("Connecting to PostgreSQL database...")
 
     conn = psycopg2.connect(
-        dbname="postgres",
-        user="postgres",
-        password="asdfghjkl;'",
-        # host="postgres"   # TODO For Jenkins pipeline with Postgres instance in Docker container
-        host="localhost"
+        dbname=os.getenv('POSTGRES_DB', 'postgres'),
+        user=os.getenv('POSTGRES_USER', 'postgres'),
+        password=os.getenv('POSTGRES_PASSWORD', 'asdfghjkl;\''),
+        host=os.getenv('POSTGRES_HOST', 'postgres')  # Uses service name from docker-compose file
     )
     cursor = conn.cursor()
     

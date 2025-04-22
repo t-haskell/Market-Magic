@@ -16,7 +16,11 @@ import pandas as pd
 import datetime
 import psycopg2
 import argparse
+import os
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
 
 ###########################################
 # Parse Command-Line Arguments
@@ -125,12 +129,12 @@ for company in company_dataframes:
 # Database Loading
 ###########################################
 
-# Connect to PostgreSQL
+# Connect to PostgreSQL using environment variables
 conn = psycopg2.connect(
-    dbname="postgres",
-    user="postgres",
-    password="asdfghjkl;'",
-    host="postgres" # Uses service name from docker-compose file
+    dbname=os.getenv('POSTGRES_DB', 'postgres'),
+    user=os.getenv('POSTGRES_USER', 'postgres'),
+    password=os.getenv('POSTGRES_PASSWORD', 'asdfghjkl;\''),
+    host=os.getenv('POSTGRES_HOST', 'postgres')  # Uses service name from docker-compose file
 )
 cursor = conn.cursor()
 print(f"\n**\nDatabase connection successful!\n**\n")
