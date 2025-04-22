@@ -22,25 +22,29 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import json
 import logging
+from newsapi import NewsApiClient
 
 ###########################################
 # Logging Configuration
 ###########################################
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),  # Console output
-        logging.FileHandler("news_sentiment.log", mode='a')  # File logging
-    ]
-)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)  # Standard out displays only INFO-level log messages
+file_handler = logging.FileHandler("news_sentiment.log", mode='a')
+file_handler.setLevel(logging.DEBUG)    # Log file will have all log messages including DEBUG
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
 
 # Download required NLTK data
-nltk.download('punkt')
-nltk.download('punkt_tab')
-nltk.download('stopwords')
+# nltk.download('punkt')
+# nltk.download('punkt_tab')
+# nltk.download('stopwords')
 
 ###########################################
 # Parse Command-Line Arguments
@@ -49,19 +53,14 @@ parser = argparse.ArgumentParser(description="Market Magic News Sentiment Analys
 parser.add_argument("--api_key", help="API key for news sources", required=False)
 args = parser.parse_args()
 
+# Initialize NewsAPI client (requires --api_key)
+if not args.api_key:
+    logger.error("NewsAPI.org API key is required for article fetching")
+    exit(1)
+newsapi = NewsApiClient(api_key=args.api_key)
+
 logger.info(f"Script started at {datetime.now()}")
 logger.info(f"API Key provided: {'Yes' if args.api_key else 'No'}")
-
-###########################################
-# News Sources Configuration
-###########################################
-NEWS_SOURCES = {
-    'Reuters': 'https://www.reuters.com/markets/companies/',
-    'Bloomberg': 'https://www.bloomberg.com/markets/stocks',
-    'CNBC': 'https://www.cnbc.com/markets/'
-}
-
-STOCK_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM', 'BRK.B', 'VZ']
 
 ###########################################
 # Sentiment Analysis Setup
@@ -89,32 +88,32 @@ def extract_entities(text):
 ###########################################
 # Data Extraction
 ###########################################
-def fetch_news_articles(symbol, source):
-    """Fetch news articles for a given symbol from a source"""
+def fetch_news_articles(symbol):
+    """Fetch news articles for a given symbol using NewsAPI.org"""
     articles = []
+    logger.info(f"Fetching articles for {symbol} via NewsAPI")
     try:
-        logger.info(f"Fetching articles for {symbol} from {source}")
-        logger.debug(f"Requesting URL: {NEWS_SOURCES[source]}{symbol}")
-        
-        # This is a placeholder to implement actual news source API's TODO
-        response = requests.get(f"{NEWS_SOURCES[source]}{symbol}")
-        if response.status_code == 200:
-            # Simplified parsing of articles, could be refined TODO
-            article = Article(response.url)
-            article.download()
-            article.parse()
-            
+        response = newsapi.get_everything(
+            q=symbol,
+            language='en',
+            sort_by='publishedAt',
+            page_size=100
+        )
+        for item in response.get('articles', []):
             articles.append({
-                'title': article.title,
-                'text': article.text,
-                'url': article.url,
-                'datetime': article.publish_date or datetime.now(),
-                'source': source
+                'title': item['title'],
+                'text': item.get('description') or '',
+                'url': item['url'],
+                'datetime': datetime.fromisoformat(item['publishedAt'].rstrip('Z')),
+                'source': item['source']['name']
             })
-            logger.info(f"Article fetched: {article.title[:60]}... from {source}")
+        if not articles:
+            logger.info(f"No articles returned for {symbol}")
     except Exception as e:
-        logger.error(f"Failed to fetch or parse article for {symbol} from {source}: {e}")
+        logger.error(f"Failed to fetch articles for {symbol}: {e}")
     return articles
+
+STOCK_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM', 'BRK.B', 'VZ']
 
 ###########################################
 # Data Transformation
@@ -162,7 +161,7 @@ def load_to_database(processed_data):
     
     try:
         # First, ensure news sources exist in the database
-        for source in NEWS_SOURCES.keys():
+        for source in set(data['source'] for data in processed_data):
             cursor.execute("""
                 INSERT INTO news_sources (source_name)
                 VALUES (%s)
@@ -213,11 +212,10 @@ def main():
     all_processed_data = []
     for symbol in STOCK_SYMBOLS:
         logger.info(f"\nProcessing news for {symbol}...")
-        for source in NEWS_SOURCES:
-            articles = fetch_news_articles(symbol, source)
-            if articles:
-                processed_data = process_articles(articles)
-                all_processed_data.extend(processed_data)
+        articles = fetch_news_articles(symbol)
+        if articles:
+            processed_data = process_articles(articles)
+            all_processed_data.extend(processed_data)
     
     if all_processed_data:
         logger.info(f"Total processed articles: {len(all_processed_data)}")
