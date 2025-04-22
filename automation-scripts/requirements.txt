@@ -8,3 +8,4 @@ transformers
 torch
 requests
 lxml-html-clean # Needed for newspaper3k library
+newsapi-python # for NewsAPI.org reliable article fetching
