@@ -64,7 +64,7 @@ CREATE TABLE news_sentiment (
     title TEXT NOT NULL,
     sentiment_score NUMERIC(4,3) CHECK (sentiment_score BETWEEN -1 AND 1),
     entity_recognition JSONB,
-    keywords TEXT[],
+    keywords JSONB,
     CONSTRAINT news_datetime_title_key UNIQUE(datetime, title),
     CONSTRAINT fk_news_source FOREIGN KEY (source_id) REFERENCES news_sources(id)
 );
