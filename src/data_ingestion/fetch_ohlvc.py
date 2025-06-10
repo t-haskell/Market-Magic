@@ -52,10 +52,13 @@ try:
     
     # Convert sheet data to pandas DataFrame
     ohlvc_data = pd.DataFrame(ohlvc_sheet.get_all_values())
-    # Set proper column headers from row 3
-    ohlvc_data.columns = ohlvc_data.iloc[2]
-    # Remove the first 3 rows (including the header row we just used)
-    ohlvc_data = ohlvc_data.iloc[3:].reset_index(drop=True)
+    # Identify and assign the header row (row index 2), strip any whitespace
+    header_row = 2
+    ohlvc_data.columns = ohlvc_data.iloc[header_row].str.strip()
+    # Debug: print detected column names
+    print("Detected columns:", list(ohlvc_data.columns))
+    # Remove the header row and all rows above it
+    ohlvc_data = ohlvc_data.iloc[header_row+1:].reset_index(drop=True)
 
 except gspread.exceptions.SpreadsheetNotFound:
     print("Error: Spreadsheet not found. Please ensure:")
