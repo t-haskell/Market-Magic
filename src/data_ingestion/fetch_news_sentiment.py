@@ -12,6 +12,7 @@ Author: Tommy Haskell
 
 import pandas as pd
 import psycopg2
+from psycopg2.extras import Json
 import argparse
 from datetime import datetime
 import requests
@@ -142,7 +143,7 @@ def process_articles(articles):
             'source': article['source'],
             'title': article['title'],
             'sentiment_score': sentiment_score,
-            'keywords': json.dumps(keywords),
+            'keywords': keywords,
             'entity_recognition': entities
         })
     return processed_data
@@ -191,7 +192,7 @@ def load_to_database(processed_data):
                 data['title'],
                 data['sentiment_score'],
                 json.dumps(data['entity_recognition']),
-                data['keywords']
+                Json(data['keywords'])
             ))
         
             logger.debug(f"Inserted article: {data['title'][:60]}...")
