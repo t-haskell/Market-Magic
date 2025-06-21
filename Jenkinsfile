@@ -44,6 +44,15 @@ pipeline {
                 }
             }
         }
+        stage('Run Social Media Sentiment Analysis') {
+            steps {
+                sh '''
+                    # Activate the virtual environment and run the script
+                    . venv/bin/activate
+                    python src/data_ingestion/fetch_social_media_sentiment.py
+                '''
+            }
+        }
     }
     triggers {
         cron('H 9 * * *') // Executes daily at approximately 2 AM UTC

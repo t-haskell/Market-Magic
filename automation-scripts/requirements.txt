@@ -10,3 +10,4 @@ requests
 lxml-html-clean # Needed for newspaper3k library
 newsapi-python # for NewsAPI.org reliable article fetching
 python-dotenv # for environment variable management
+snscrape # for Reddit API integration
